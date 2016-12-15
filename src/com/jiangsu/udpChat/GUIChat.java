@@ -209,9 +209,11 @@ public class GUIChat extends Frame {
 	private void sendAction() throws IOException{
 		 String message = sendText.getText();
 		 String ip = tf.getText();
+		 ip = ip.trim().length() ==0 ? "255.255.255.255" : ip;
+		 
 		 send(message.getBytes(),ip);
 		 String time = getCurrentTime();
-		 String str = time+" 我对"+ip+"说："+"\r\n"+message+"\r\n";
+		 String str = time+" 我对"+(ip.equals("255.255.255.255")? "所有人" : ip)+"说："+"\r\n"+message+"\r\n";
 		 bw.write(str); 													//将信息写入数据库
 		 viewText.append(str);
 		 sendText.setText("");
