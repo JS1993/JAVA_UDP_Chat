@@ -37,16 +37,29 @@ public class GUIChat extends Frame {
 	/**
 	 * @param args
 	 * 	GUI聊天
+	 * @throws SocketException 
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SocketException {
 		new GUIChat();
 	}
 	
-	public GUIChat() {
+	public GUIChat() throws SocketException {
 		init();
 		southPanel();
 		centerPanel();
 		event();
+	}
+	
+	/**
+	 * 初始化方法
+	 * @throws SocketException 
+	 */
+	private void init() throws SocketException {
+		this.setLocation(500, 500);
+		this.setSize(400,600);
+		new Receive().start();
+	    socket = new DatagramSocket();
+		this.setVisible(true);
 	}
 	
 	/**
@@ -55,7 +68,8 @@ public class GUIChat extends Frame {
 	public void event() {
 		this.addWindowListener(new WindowAdapter(){
 			@Override
-			public void windowClosing(WindowEvent e){
+			public void windowClosing(WindowEvent e){ 
+			    socket.close();
 				System.exit(0);
 			}
 		});
@@ -81,15 +95,13 @@ public class GUIChat extends Frame {
 	private void sendAction() throws IOException{
 		 String message = sendText.getText();
 		 String ip = tf.getText();
-		 socket = new DatagramSocket();
 		 DatagramPacket packet = new DatagramPacket(message.getBytes(),message.getBytes().length,InetAddress.getByName(ip),9999);
 		 socket.send(packet);
 		 
 		 String time = getCurrentTime();
 		 viewText.append(time+" 我对"+ip+"说："+"\r\n"+message+"\r\n");
 		 sendText.setText("");
-		 
-		 socket.close();
+	
 	}
 	
 	private String getCurrentTime() {
@@ -140,14 +152,34 @@ public class GUIChat extends Frame {
 		
 		this.add(south,BorderLayout.SOUTH);
 	}
-
+	
 	/**
-	 * 初始化方法
+	 * 内部接收类
+	 * @author jiangSu
+	 *
 	 */
-	private void init() {
-		this.setLocation(500, 100);
-		this.setSize(400,600);
-		this.setVisible(true);
+	private class Receive extends Thread{
+		private DatagramSocket socket;
+
+		public void run(){
+			try {
+				socket = new DatagramSocket(9999);
+				while(true){
+					DatagramPacket packet = new DatagramPacket(new byte[8192],8192);
+					socket.receive(packet);
+					byte[] arr = packet.getData();
+					int len = packet.getLength();
+					String message = new String(arr,0,len);
+					String time = getCurrentTime();
+					String ip = packet.getAddress().getHostAddress();
+					viewText.append(time+" "+ip+"对我说：\r\n"+message+"\r\n");
+				}	
+			} catch (SocketException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}	
+		}
 	}
 
 }
