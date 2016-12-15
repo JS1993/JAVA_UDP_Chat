@@ -12,6 +12,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -20,6 +24,8 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import sun.security.krb5.Config;
 
 public class GUIChat extends Frame {
 
@@ -33,17 +39,18 @@ public class GUIChat extends Frame {
 	private TextArea viewText;
 	private TextArea sendText;
 	private DatagramSocket socket;
+	private BufferedWriter bw;
 
 	/**
 	 * @param args
 	 * 	GUI聊天
-	 * @throws SocketException 
+	 * @throws IOException 
 	 */
-	public static void main(String[] args) throws SocketException {
+	public static void main(String[] args) throws IOException {
 		new GUIChat();
 	}
 	
-	public GUIChat() throws SocketException {
+	public GUIChat() throws IOException {
 		init();
 		southPanel();
 		centerPanel();
@@ -52,13 +59,14 @@ public class GUIChat extends Frame {
 	
 	/**
 	 * 初始化方法
-	 * @throws SocketException 
+	 * @throws IOException 
 	 */
-	private void init() throws SocketException {
+	private void init() throws IOException {
 		this.setLocation(500, 500);
 		this.setSize(400,600);
 		new Receive().start();
 	    socket = new DatagramSocket();
+	    bw = new BufferedWriter(new FileWriter("config.txt",true));				//需要在尾部追加而不是清空
 		this.setVisible(true);
 	}
 	
@@ -70,6 +78,11 @@ public class GUIChat extends Frame {
 			@Override
 			public void windowClosing(WindowEvent e){ 
 			    socket.close();
+			    try {
+					bw.close();
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 				System.exit(0);
 			}
 		});
@@ -86,6 +99,45 @@ public class GUIChat extends Frame {
 				}
 			}
 		});
+		
+		logBtn.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					logFile();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+			
+		});
+		
+		clearBtn.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				viewText.setText("");
+			}
+		});
+	}
+	
+	/**
+	 * 读取消息记录
+	 * @throws IOException 
+	 */
+	private void logFile() throws IOException {
+		bw.flush();							//刷新缓冲区
+		 FileInputStream fis = new FileInputStream("config.txt");
+		 ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		 int len;
+		 byte[] arr = new byte[8192];
+		 while((len = fis.read(arr) )!= -1){
+			 baos.write(arr,0,len);
+		 }
+		 
+		 String str = baos.toString();
+		 viewText.setText(str);
+		 fis.close();
 	}
 	
 	/**
@@ -99,7 +151,9 @@ public class GUIChat extends Frame {
 		 socket.send(packet);
 		 
 		 String time = getCurrentTime();
-		 viewText.append(time+" 我对"+ip+"说："+"\r\n"+message+"\r\n");
+		 String str = time+" 我对"+ip+"说："+"\r\n"+message+"\r\n";
+		 bw.write(str); 													//将信息写入数据库
+		 viewText.append(str);
 		 sendText.setText("");
 	
 	}
@@ -172,7 +226,9 @@ public class GUIChat extends Frame {
 					String message = new String(arr,0,len);
 					String time = getCurrentTime();
 					String ip = packet.getAddress().getHostAddress();
-					viewText.append(time+" "+ip+"对我说：\r\n"+message+"\r\n");
+					String str = time+" "+ip+"对我说：\r\n"+message+"\r\n";
+					bw.write(str); 														//信息写入数据库
+					viewText.append(str);
 				}	
 			} catch (SocketException e) {
 				e.printStackTrace();
