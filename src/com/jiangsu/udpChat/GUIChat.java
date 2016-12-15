@@ -10,6 +10,8 @@ import java.awt.TextArea;
 import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.BufferedWriter;
@@ -71,7 +73,7 @@ public class GUIChat extends Frame {
 	}
 	
 	/**
-	 * 点击事件
+	 * 事件
 	 */
 	public void event() {
 		this.addWindowListener(new WindowAdapter(){
@@ -129,6 +131,23 @@ public class GUIChat extends Frame {
 				}
 			}
 
+		});
+		
+		/**
+		 * 键盘监听，快捷键
+		 */
+		sendText.addKeyListener(new KeyAdapter() {
+			@Override
+			public void keyReleased(KeyEvent e) {
+				super.keyReleased(e);
+				if(e.getKeyCode() == KeyEvent.VK_ENTER){   //按 enter 发送
+					try {
+						sendAction();
+					} catch (IOException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
 		});
 	}
 	
