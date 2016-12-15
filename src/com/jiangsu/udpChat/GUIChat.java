@@ -106,7 +106,6 @@ public class GUIChat extends Frame {
 				try {
 					logFile();
 				} catch (IOException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			}
@@ -119,6 +118,39 @@ public class GUIChat extends Frame {
 				viewText.setText("");
 			}
 		});
+		
+		shakeBtn.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					send(new byte[]{-1},tf.getText());			//发送-1
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
+			}
+
+		});
+	}
+	
+	/**
+	 * 震动功能
+	 * @throws InterruptedException 
+	 */
+	private void shake() throws InterruptedException {
+		int x  = this.getLocation().x;
+		int y = this.getLocation().y;
+		
+		for(int i = 0 ;i<10;i++){
+			this.setLocation(x-20, y+20);
+			Thread.sleep(80);
+			this.setLocation(x+20, y-20);
+			Thread.sleep(80);
+			this.setLocation(x-20, y+20);
+			Thread.sleep(80);
+			this.setLocation(x+20, y-20);
+			Thread.sleep(80);
+		}
+		
 	}
 	
 	/**
@@ -141,15 +173,24 @@ public class GUIChat extends Frame {
 	}
 	
 	/**
+	 * 发送消息的重载
+	 * @param arr
+	 * @param ip
+	 * @throws IOException
+	 */
+	private void send(byte[] arr,String ip) throws IOException{
+		DatagramPacket packet = new DatagramPacket(arr,arr.length,InetAddress.getByName(ip),9999);
+		 socket.send(packet);
+	}
+	
+	/**
 	 * 发送消息
 	 * @throws IOException 
 	 */
 	private void sendAction() throws IOException{
 		 String message = sendText.getText();
 		 String ip = tf.getText();
-		 DatagramPacket packet = new DatagramPacket(message.getBytes(),message.getBytes().length,InetAddress.getByName(ip),9999);
-		 socket.send(packet);
-		 
+		 send(message.getBytes(),ip);
 		 String time = getCurrentTime();
 		 String str = time+" 我对"+ip+"说："+"\r\n"+message+"\r\n";
 		 bw.write(str); 													//将信息写入数据库
@@ -223,6 +264,10 @@ public class GUIChat extends Frame {
 					socket.receive(packet);
 					byte[] arr = packet.getData();
 					int len = packet.getLength();
+					if(arr[0]==-1&&len==1) {				//如果发过来数组第一个是-1并且长度是1,就调用震动方法
+						shake();
+						continue;							//终止本次循环，继续下次循环，不执行后面的代码
+					}
 					String message = new String(arr,0,len);
 					String time = getCurrentTime();
 					String ip = packet.getAddress().getHostAddress();
@@ -233,6 +278,9 @@ public class GUIChat extends Frame {
 			} catch (SocketException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 		}
